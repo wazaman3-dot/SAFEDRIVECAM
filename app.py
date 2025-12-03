@@ -7,7 +7,7 @@ from io import BytesIO
 
 # Config page
 st.set_page_config(
-    page_title="CESR - Tableau de bord Sécurité Routière Yaoundé", 
+    page_title="DASHBOARD ROAD SAFETY MOVE-YAOUNDE", 
     layout="wide", 
     page_icon="🚦",
     initial_sidebar_state="expanded"
@@ -592,117 +592,18 @@ Yaoundé, Cameroun • Rapport généré automatiquement
     return text_content.encode('utf-8')
 
 # =====================================================
-# COORDONNÉES GÉOGRAPHIQUES
+# FONCTION JOURS FRANÇAIS ← AJOUTEZ ICI
 # =====================================================
-
-coordinates = {
-    "Carrefour Poste Centrale": {"lat": 3.861742800875151, "lon": 11.520971943019246},
-    "Carrefour J'aime mon pays": {"lat": 3.8659711733356867, "lon": 11.515636718507722},
-    "Boulevard du 20 Mai": {"lat": 3.864269053436714, "lon": 11.517238307980946},
-    "Carrefour Pharmacie du Soleil": {"lat": 3.8671058413609636, "lon": 11.516773975142678},
-    "Rue Narvick": {"lat": 3.8654733025149355, "lon": 11.519040752498785},
-    "Avenue Kennedy": {"lat": 3.8642101789934955, "lon": 11.520199466831677},
-    "Avenue Amadou Ahidjo": {"lat": 3.866000, "lon": 11.518000},
-    "Avenue de l'Indépendance": {"lat": 3.863000, "lon": 11.521000},
-    "Rue de Natchigal": {"lat": 3.862000, "lon": 11.519000}
-}
-
-# =====================================================
-# DONNÉES 2500 ACCIDENTS - AMÉLIORÉ
-# =====================================================
-np.random.seed(42)
-n = 2500
-
-# Rues critiques et autres
-rues_critiques = [
-    "Carrefour Poste Centrale", "Carrefour J'aime mon pays", 
-    "Boulevard du 20 Mai", "Carrefour Pharmacie du Soleil",
-    "Rue Narvick", "Avenue Kennedy"
-]
-rues_autres = ["Avenue Amadou Ahidjo", "Avenue de l'Indépendance", "Rue de Natchigal"]
-
-# Probabilités exactes (total 1.0)
-probs_rues = [0.20, 0.15, 0.10, 0.08, 0.04, 0.02, 0.15, 0.12, 0.14]
-
-# Causes selon standards OMS
-cause_choices = [
-    "Excès de vitesse", "Conduite en état d'ébriété", 
-    "Non-respect des priorités", "Utilisation du téléphone",
-    "Défaillance technique", "Infrastructure déficiente"
-]
-cause_probs_raw = [0.35, 0.20, 0.15, 0.12, 0.10, 0.08]
-cause_total = sum(cause_probs_raw)
-cause_probs = [p / cause_total for p in cause_probs_raw]
-
-# Génération des données avec distribution ajustée pour les véhicules
-# Tourisme 45%, Taxi 20%, Utilitaire 15%, Moto 15%, Bus 5%
-df = pd.DataFrame({
-    'ID_Accident': [f'ACC-{i+1:05d}' for i in range(n)],
-    'Rue': np.random.choice(rues_critiques + rues_autres, n, p=probs_rues),
-    'Cause': np.random.choice(cause_choices, n, p=cause_probs),
-    'Type_Vehicule': np.random.choice(['Véhicule tourisme', 'Taxi', 'Véhicule utilitaire', 'Moto', 'Bus'], 
-                                      n, p=[0.45, 0.20, 0.15, 0.15, 0.05]),
-    'Profession_Conducteur': np.random.choice(['Chauffeur professionnel', 'Particulier', 'Transporteur', 'Autre'], 
-                                            n, p=[0.25, 0.50, 0.10, 0.15])
-})
-
-# 3 types d'accidents uniquement
-df['Gravite'] = np.random.choice(['Dommages matériels', 'Blessures corporelles', 'Mortels'], n,
-                                p=[0.80, 0.15, 0.05])
-
-# Distribution horaire réaliste (majorité 14h-22h)
-heures = []
-for _ in range(n):
-    if np.random.random() < 0.75:  # 75% entre 14h et 22h
-        heure = np.random.choice([14, 15, 16, 17, 18, 19, 20, 21, 22], 
-                                p=[0.08, 0.10, 0.12, 0.15, 0.18, 0.15, 0.10, 0.08, 0.04])
-    else:
-        heure = np.random.randint(0, 14)
-    heures.append(heure)
-df['Heure'] = heures
-
-# Distribution d'âge réaliste
-ages = np.random.normal(35, 15, n)
-ages = np.clip(ages, 18, 80)
-df['Age_Conducteur'] = ages.astype(int)
-
-df['Sexe_Conducteur'] = np.random.choice(['Homme', 'Femme'], n, p=[0.85, 0.15])
-
-# Dates sur 5 ans
-df['Date'] = pd.to_datetime('2020-01-01') + pd.to_timedelta(np.random.randint(0, 5*365, n), unit='D')
-df['Annee'] = df['Date'].dt.year
-df['Mois'] = df['Date'].dt.month
-df['Mois_Nom'] = df['Date'].dt.strftime('%B')
-
-# Jour de la semaine en français
 def get_french_day_names():
-    return {
-        0: 'Lundi',
-        1: 'Mardi',
-        2: 'Mercredi',
-        3: 'Jeudi',
-        4: 'Vendredi',
-        5: 'Samedi',
-        6: 'Dimanche'
-    }
+    return {0: 'Lundi', 1: 'Mardi', 2: 'Mercredi', 3: 'Jeudi', 
+            4: 'Vendredi', 5: 'Samedi', 6: 'Dimanche'}
+            
+            
+# CHARGEMENT BASE DE DONNÉES EXTERNE
+df = pd.read_csv('donnees_securite_routiere_cesr.csv', parse_dates=['Date'])
+df['Date'] = pd.to_datetime(df['Date'])  # Assure format datetime
 
-df['Jour_Semaine'] = df['Date'].dt.dayofweek.map(get_french_day_names())
 
-# Ajout des coordonnées géographiques
-def get_coordinates(rue):
-    if rue in coordinates:
-        return coordinates[rue]['lat'], coordinates[rue]['lon']
-    else:
-        # Coordonnées approximatives pour les autres rues
-        return 3.8650, 11.5180  # Centre approximatif de Yaoundé
-
-df[['Latitude', 'Longitude']] = df['Rue'].apply(
-    lambda x: pd.Series(get_coordinates(x))
-)
-
-# Conditions météo pour analyses croisées
-df['Conditions_Meteo'] = np.random.choice(['Clair', 'Pluie', 'Brouillard', 'Nuit'], 
-                                         n, p=[0.60, 0.20, 0.10, 0.10])
 
 # =====================================================
 # SIDEBAR - FILTRES AVANCÉS
@@ -805,8 +706,8 @@ df_filtre = df_filtre[df_filtre['Cause'].isin(cause_filtre)]
 # =====================================================
 col_title1, col_title2 = st.columns([3, 1])
 with col_title1:
-    st.markdown("# 🚦 CESR - Tableau de Bord Sécurité Routière")
-    st.markdown("**Yaoundé, Cameroun • Analyse stratégique 2020-2024 • Standards OMS**")
+    st.markdown("# 🚦 ROAD SAFETY DASHBOARD 🚦")
+    st.markdown(" Centre-ville Yaoundé, Cameroun • Analyse stratégique 2020-2024 • ")
     
 with col_title2:
     st.markdown("")
@@ -1558,10 +1459,10 @@ st.markdown("---")
 st.markdown(f"""
 <div style="text-align:center; color:{COLORS['light']}; font-family: 'Segoe UI'; padding:1rem 0;">
     <strong>CESR - Cabinet d'Expertise Sécurité Routière</strong><br>
-    Yaoundé, Cameroun • Dashboard analytique • Standards OMS/GIZ 2025<br>
+    Yaoundé, Cameroun • Dashboard analytique 2025<br>
     <small style="font-size: 0.8rem;">
         Système d'analyse prédictive et cartographique • 
-        <a href="mailto:contact@cesr-cm.org" style="color: {COLORS['primary']}; text-decoration: none;">contact@cesr-cm.org</a> •
+        <a href="mailto:cabinetesr01@gmail.com" style="color: {COLORS['primary']}; text-decoration: none;">cabinetesr01@gmail.com</a> •
         Données mises à jour quotidiennement
     </small>
 </div>
